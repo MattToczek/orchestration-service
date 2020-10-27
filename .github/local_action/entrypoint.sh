@@ -69,7 +69,7 @@ function find_missing_tags {
 
 
 function post_comment {
-  if [ $(wc -l comment.txt | awk '{print 1}') -gt 0 ]; then
+  if [ $(wc -l comment.txt | awk '{print 1}') -gt 1 ]; then
     pr_number=$(IFS='/' read -r -a split <<< "${GITHUB_REF}"; echo "${split[2]}")
     body=$(cat comment.txt)
     curl -s -H "Authorization: token ${GHTOKEN}" \
