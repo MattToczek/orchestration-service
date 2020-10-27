@@ -20,4 +20,4 @@ jobs:
           github-token: ${{ secrets.github_token }}
           tags: "test, test1, test2"
           tag-map: "common_tags"
-          path-to-terraform: "./terraform/deploy"
+          path-to-terraform: "terraform/deploy/app"

@@ -1,6 +1,6 @@
 FROM dwpdigital/tflint:latest
 
-COPY entrypoint.sh .
-RUN chmod +x ./entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN pwd && ls && cat /entrypoint.sh && chmod +x /entrypoint.sh
 
-ENTRYPOINT ['./entrypoint.sh']
+ENTRYPOINT ["/entrypoint.sh"]

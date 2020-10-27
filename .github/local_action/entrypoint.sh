@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/bash -vx
 
-set +x
+#set +x
 
 # sets TAGS as an array
 IFS=', ' read -r -a TAGS <<< "$2"
@@ -10,12 +10,15 @@ TAG_MAP="$4"
 GHTOKEN="$1"
 # sets path to terraform dir
 TERRAFORM_DIR="$3"
+config_file=/tmp/.tflint.hcl
 
 
 function create_config_file {
-  echo "rule aws_resource_missing_tags {" >> tflint.hcl
-  echo "  enabled = true" >> tflint.hcl
-  echo "  tags    = ["$(for i in "${TAGS[@]}"; do echo "${i}, "; done)"]}"  >> tflint.hcl
+  echo "rule aws_resource_missing_tags {" > ${config_file}
+  echo "  enabled = true" >> ${config_file}
+  echo "  tags    = [$(for i in "${TAGS[@]}"; do echo -n "\"${i}\", "; done)]" >> ${config_file}
+  echo "}"  >> ${config_file}
+  cat ${config_file}
 }
 
 
@@ -34,11 +37,13 @@ function find_missing_tags {
         echo "$dynamic_block" | grep $tag
         if [ ! $? -eq 0 ]; then
           tag_count+=1
+          echo "tag_count: ${tag_count}"
         fi
       done
       echo "$dynamic_block" | grep $TAG_MAP
       if [ ! $? -eq 0 ]; then
         tag_map_count+=1
+        echo "tag_map_count: ${tag_map_count}"
       fi;
 
       if [ ! $tag_count -eq 0 ] && [ ! $tag_map_count -eq 0 ]; then
@@ -53,20 +58,20 @@ function find_missing_tags {
   IFS='¡' read -r -a message_array <<< "$message"
   if [ "${message}" ]; then
     echo "***ISSUE(S) FOUND IN ${2}***:" >> ./comment.txt
-    echo "\`\`\`" >> ./comment.md;
+    echo "\`\`\`" >> ./comment.txt;
     for i in "${message_array[@]}"
       do echo $i >> ./comment.txt
     done
     echo "\`\`\`" >> ./comment.txt
   fi
-
+  echo "message: ${message}"
   unset message
   unset message_array
 }
 
 
 function post_comment {
-  if [ $(wc -l comment.txt) -gt 0 ]; then
+  if [ $(wc -l comment.txt | awk '{print 1}') -gt 0 ]; then
     pr_number=$(IFS='/' read -r -a split <<< "${GITHUB_REF}"; echo "${split[2]}")
     body=$(cat comment.txt)
     curl -s -H "Authorization: token ${GHTOKEN}" \
@@ -77,7 +82,7 @@ function post_comment {
 
 
 create_config_file
-find_missing_tags tflint.hcl ${TERRAFORM_DIR}
-for d in $(find "${TERRAFORM_DIR}/" -type d); do find_missing_tags tflint.hcl ${d}; done
+find_missing_tags ${config_file} ${TERRAFORM_DIR}
+for d in $(find "${TERRAFORM_DIR}/" -type d); do find_missing_tags ${config_file} ${d}; done
 post_comment
 rm comment.txt
