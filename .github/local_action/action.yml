@@ -1,0 +1,25 @@
+# action.yml
+name: 'aws_terraform_tag_check'
+description: 'Checks given tags are applied to taggable resources'
+inputs:
+  github-token:
+    description: 'GitHub API token'
+    required: true
+  tags:
+    description: 'Resource tags to check for'
+    required: true
+  tag-map:
+    description: 'Resource tag map name such as "common_tags" to check for'
+    required: false
+  path-to-terraform:
+    description: 'Path from root of project to terraform directory'
+    required: false
+    default: './'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.github-token}}
+    - ${{ inputs.tags }}
+    - ${{ inputs.path-to-terraform }}
+    - ${{ inputs.tag-map }}

@@ -3,91 +3,21 @@ on:
   pull_request:
     branches:
       - master
-env:
-  IMAGE_NAME: dwpdigital/orchestration-service
 
 jobs:
   pull_request:
-
     runs-on: ubuntu-latest
-    services:
-      localstack:
-        image: localstack/localstack:latest
-        ports:
-          - 4566:4566
-        env:
-          DEBUG: 1
-          SERVICES: dynamodb,iam,kms
-
+    name: testing local tag check
     steps:
-      - name: checkout
+      # To use this repository's private action,
+      # you must check out the repository
+      - name: Checkout
         uses: actions/checkout@v2
-
-      - name: terraform-setup
-        uses: hashicorp/setup-terraform@v1
+      - name: Hello world action step
+        uses: ./.github/local_action/ # Uses an action in the root directory
+        id: local_action
         with:
-          terraform_version: 0.12.19
-      - name: terraform-fmt
-        id: fmt
-        run: terraform fmt --recursive
-
-      - name: tflint
-        id: tflint
-        run: |
-          pwd
-          ls
-          curl https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-          output=""
-
-          for d in $(find ./terraform/* -type d) ;do
-            section=$(tflint -f json --force --disable-rule=aws_cloudwatch_log_group_invalid_name --config=./terraform/.tflint.hcl $d |jq -c '.issues[] | "ISSUE FOUND: (\(.rule.name)) in \(.range.filename) line \(.range.start.line) - \(.range.end.line)¡"')
-            output+=$(if [ ${#section} -gt 1 ] ; then echo "***ISSUE(S) FOUND IN ${d}***:¡${section}¢"; fi);
-          done
-
-          output=$( echo $output | sed -e 's/"//g' )
-
-          IFS='¢' read -r -a array <<< "$output"
-          if [ ${#array[@]} -gt 0 ]; then echo '::set-output name=COMMENT::true'; else echo '::set-output name=COMMENT::false'; fi
-
-          for i in "${array[@]}"
-            do
-              IFS='¡' read -r -a comment_sections <<< "$i"
-              echo "${comment_sections[0]}" >> .github/workflows/comment.md
-              echo "\`\`\`" >> .github/workflows/comment.md
-              for p in "${comment_sections[@]:1}"
-                do
-                  echo $p >> .github/workflows/comment.md
-                done
-              echo -e "\`\`\` \n" >> .github/workflows/comment.md
-            done
-
-      - name: Add checkout commands
-        uses: harupy/comment-on-pr@master
-        if: steps.tflint.outputs.COMMENT == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          filename: comment.md
-
-      - name: build-docker-image
-        run: |
-          ./gradlew clean build
-          docker build -t ${{ env.IMAGE_NAME }}:latest .
-
-      - name: test
-        run: ./gradlew build test
-
-      - name: integration-test
-        env:
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_SECRET_ACCESS_KEY: foo
-          AWS_ACCESS_KEY_ID: bar
-        run: ./gradlew integration
-
-      - name: snyk-scan
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          image: ${{ env.IMAGE_NAME }}
-          args: --file=Dockerfile --policy-path=./.snyk --severity-threshold=high --exclude-base-image-vulns --org=dwp-dataworks
+          github-token: ${{ secrets.github_token }}
+          tags: "test, test1, test2"
+          tag-map: "common_tags"
+          path-to-terraform: "./terraform/deploy"
