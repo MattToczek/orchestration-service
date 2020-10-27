@@ -16,9 +16,9 @@ Optional. The common name of the variable used for a map of tags e.g. `tag-map: 
 
 **Required**. Must be in form of `github_token: ${{ secrets.github_token }}`.
 
-### `path-to-terraform`
+### `paths-to-terraform-dirs`
 
-Optional. Path to the base terraform folder from root of repo, e.g. `path-to-terraform: "infrastructure/terraform` 
+Optional. Comma seperated list of path(s) from root of project to terraform directories e.g. `path-to-terraform: " "terraform/deploy/, terraform/modules/"` 
 
 
 ## Example usage
